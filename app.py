@@ -149,7 +149,14 @@ def index():
 @app.route('/health')
 def health():
     """Health check endpoint for Railway"""
-    return jsonify({'status': 'ok'})
+    import os
+    return jsonify({
+        'status': 'ok',
+        'rapidapi_key_set': bool(Config.RAPIDAPI_KEY),
+        'rapidapi_key_length': len(Config.RAPIDAPI_KEY) if Config.RAPIDAPI_KEY else 0,
+        'env_TWITTER_API_KEY': 'TWITTER_API_KEY' in os.environ,
+        'env_RAPIDAPI_KEY': 'RAPIDAPI_KEY' in os.environ
+    })
 
 
 @app.route('/debug/config')
