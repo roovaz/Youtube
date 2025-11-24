@@ -152,6 +152,22 @@ def health():
     return jsonify({'status': 'ok'})
 
 
+@app.route('/debug/config')
+def debug_config():
+    """Debug endpoint to check configuration (remove in production)"""
+    import os
+    return jsonify({
+        'rapidapi_key_exists': bool(Config.RAPIDAPI_KEY),
+        'rapidapi_key_length': len(Config.RAPIDAPI_KEY) if Config.RAPIDAPI_KEY else 0,
+        'rapidapi_key_preview': Config.RAPIDAPI_KEY[:10] + '...' if Config.RAPIDAPI_KEY and len(Config.RAPIDAPI_KEY) > 10 else 'NOT SET',
+        'env_RAPIDAPI_KEY_exists': 'RAPIDAPI_KEY' in os.environ,
+        'env_TWITTER_API_KEY_exists': 'TWITTER_API_KEY' in os.environ,
+        'secret_key_exists': bool(Config.SECRET_KEY),
+        'api_host': Config.RAPIDAPI_HOST,
+        'api_base_url': Config.RAPIDAPI_BASE_URL
+    })
+
+
 @app.route('/api/scrape', methods=['POST'])
 def start_scrape():
     """Start a new scrape job"""
