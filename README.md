@@ -93,7 +93,7 @@ python app.py
 
 | Variable      | Description                          | Required |
 |--------------|--------------------------------------|----------|
-| RAPIDAPI_KEY | Twitter241 RapidAPI key             | Yes      |
+| RAPIDAPI_KEY or TWITTER_API_KEY | Twitter241 RapidAPI key (either name works) | Yes      |
 | SECRET_KEY   | Flask secret key for sessions       | Yes      |
 | DATABASE_PATH| Path to SQLite database (optional)  | No       |
 

@@ -4,7 +4,8 @@ class Config:
     """Configuration from environment variables"""
 
     # API Configuration
-    RAPIDAPI_KEY = os.environ.get('RAPIDAPI_KEY', '')
+    # Accept both RAPIDAPI_KEY and TWITTER_API_KEY for flexibility
+    RAPIDAPI_KEY = os.environ.get('RAPIDAPI_KEY') or os.environ.get('TWITTER_API_KEY', '')
     RAPIDAPI_HOST = 'twitter241.p.rapidapi.com'
     RAPIDAPI_BASE_URL = 'https://twitter241.p.rapidapi.com'
 
