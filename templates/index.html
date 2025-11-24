@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Twitter/X Profile Scraper</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'twitter-bg': '#15202b',
+                        'twitter-secondary': '#192734',
+                        'twitter-border': '#38444d',
+                        'twitter-blue': '#1da1f2',
+                        'twitter-blue-dark': '#1a8cd8',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-twitter-bg text-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <!-- Header -->
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-twitter-blue mb-2">Twitter/X Profile Scraper</h1>
+            <p class="text-gray-400">Scrape tweets and comments from any public Twitter profile</p>
+        </header>
+
+        <!-- Main Content -->
+        <div id="scrapeForm" class="mb-8">
+            <div class="bg-twitter-secondary rounded-lg p-6 border border-twitter-border">
+                <h2 class="text-2xl font-semibold mb-4">Start New Scrape</h2>
+
+                <form id="startScrapeForm" class="space-y-4">
+                    <!-- Username Input -->
+                    <div>
+                        <label for="username" class="block text-sm font-medium mb-2">Twitter Username</label>
+                        <input type="text" id="username" name="username" placeholder="@elonmusk or elonmusk"
+                            class="w-full px-4 py-2 bg-twitter-bg border border-twitter-border rounded-lg focus:outline-none focus:ring-2 focus:ring-twitter-blue text-white">
+                    </div>
+
+                    <!-- Max Tweets Slider -->
+                    <div>
+                        <label for="maxTweets" class="block text-sm font-medium mb-2">
+                            Max Tweets: <span id="maxTweetsValue" class="text-twitter-blue">100</span>
+                        </label>
+                        <input type="range" id="maxTweets" name="maxTweets" min="10" max="500" value="100" step="10"
+                            class="w-full h-2 bg-twitter-border rounded-lg appearance-none cursor-pointer">
+                    </div>
+
+                    <!-- Max Age Dropdown -->
+                    <div>
+                        <label for="maxAge" class="block text-sm font-medium mb-2">Max Tweet Age</label>
+                        <select id="maxAge" name="maxAge"
+                            class="w-full px-4 py-2 bg-twitter-bg border border-twitter-border rounded-lg focus:outline-none focus:ring-2 focus:ring-twitter-blue text-white">
+                            <option value="">Unlimited</option>
+                            <option value="7">Last 7 days</option>
+                            <option value="14">Last 14 days</option>
+                            <option value="30" selected>Last 30 days</option>
+                            <option value="60">Last 60 days</option>
+                            <option value="90">Last 90 days</option>
+                        </select>
+                    </div>
+
+                    <!-- Max Comments Slider -->
+                    <div>
+                        <label for="maxComments" class="block text-sm font-medium mb-2">
+                            Max Comments per Tweet: <span id="maxCommentsValue" class="text-twitter-blue">50</span>
+                        </label>
+                        <input type="range" id="maxComments" name="maxComments" min="0" max="100" value="50" step="10"
+                            class="w-full h-2 bg-twitter-border rounded-lg appearance-none cursor-pointer">
+                    </div>
+
+                    <!-- Error Message -->
+                    <div id="errorMessage" class="hidden bg-red-900 border border-red-700 text-red-200 px-4 py-3 rounded-lg">
+                    </div>
+
+                    <!-- Start Button -->
+                    <button type="submit"
+                        class="w-full bg-twitter-blue hover:bg-twitter-blue-dark text-white font-semibold py-3 rounded-lg transition duration-200">
+                        Start Scraping
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Progress Display -->
+        <div id="progressSection" class="hidden mb-8">
+            <div class="bg-twitter-secondary rounded-lg p-6 border border-twitter-border">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-semibold">Scraping Progress</h2>
+                    <button id="cancelBtn"
+                        class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition duration-200">
+                        Cancel
+                    </button>
+                </div>
+
+                <!-- User Profile Card -->
+                <div id="userCard" class="hidden mb-6 flex items-center space-x-4 bg-twitter-bg rounded-lg p-4 border border-twitter-border">
+                    <img id="userAvatar" src="" alt="Profile" class="w-16 h-16 rounded-full">
+                    <div>
+                        <h3 id="userDisplayName" class="text-xl font-bold"></h3>
+                        <p id="userUsername" class="text-gray-400"></p>
+                        <p id="userFollowers" class="text-sm text-gray-500"></p>
+                    </div>
+                </div>
+
+                <!-- Phase Indicator -->
+                <div class="mb-4">
+                    <p class="text-sm text-gray-400 mb-2">Current Phase:</p>
+                    <div class="flex space-x-2">
+                        <div id="phase-user" class="px-3 py-1 rounded-full bg-twitter-border text-sm">Fetching Profile</div>
+                        <div id="phase-tweets" class="px-3 py-1 rounded-full bg-twitter-border text-sm">Scraping Tweets</div>
+                        <div id="phase-comments" class="px-3 py-1 rounded-full bg-twitter-border text-sm">Scraping Comments</div>
+                    </div>
+                </div>
+
+                <!-- Status Message -->
+                <p id="statusMessage" class="text-gray-400 mb-4">Initializing...</p>
+
+                <!-- Progress Bars -->
+                <div class="space-y-4">
+                    <!-- Tweets Progress -->
+                    <div>
+                        <div class="flex justify-between text-sm mb-1">
+                            <span>Tweets</span>
+                            <span id="tweetsCounter">0/0</span>
+                        </div>
+                        <div class="w-full bg-twitter-border rounded-full h-2">
+                            <div id="tweetsProgress" class="bg-twitter-blue h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Comments Progress -->
+                    <div>
+                        <div class="flex justify-between text-sm mb-1">
+                            <span>Comments</span>
+                            <span id="commentsCounter">0 collected</span>
+                        </div>
+                        <div class="w-full bg-twitter-border rounded-full h-2">
+                            <div id="commentsProgress" class="bg-twitter-blue h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Display -->
+        <div id="resultsSection" class="hidden mb-8">
+            <div class="bg-twitter-secondary rounded-lg p-6 border border-twitter-border">
+                <h2 class="text-2xl font-semibold mb-4">Scraping Complete!</h2>
+
+                <!-- Summary -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div class="bg-twitter-bg rounded-lg p-4 border border-twitter-border">
+                        <p class="text-sm text-gray-400">Total Tweets</p>
+                        <p id="totalTweets" class="text-3xl font-bold text-twitter-blue">0</p>
+                    </div>
+                    <div class="bg-twitter-bg rounded-lg p-4 border border-twitter-border">
+                        <p class="text-sm text-gray-400">Total Comments</p>
+                        <p id="totalComments" class="text-3xl font-bold text-twitter-blue">0</p>
+                    </div>
+                    <div class="bg-twitter-bg rounded-lg p-4 border border-twitter-border">
+                        <p class="text-sm text-gray-400">Engagement Rate</p>
+                        <p id="engagementRate" class="text-3xl font-bold text-twitter-blue">0%</p>
+                    </div>
+                </div>
+
+                <!-- Export Buttons -->
+                <div class="flex space-x-4 mb-6">
+                    <button id="exportJson"
+                        class="flex-1 bg-twitter-blue hover:bg-twitter-blue-dark text-white font-semibold py-2 rounded-lg transition duration-200">
+                        Export as JSON
+                    </button>
+                    <button id="exportCsv"
+                        class="flex-1 bg-twitter-blue hover:bg-twitter-blue-dark text-white font-semibold py-2 rounded-lg transition duration-200">
+                        Export as CSV
+                    </button>
+                </div>
+
+                <!-- New Scrape Button -->
+                <button id="newScrapeBtn"
+                    class="w-full bg-twitter-border hover:bg-twitter-border/80 text-white font-semibold py-2 rounded-lg transition duration-200">
+                    Start New Scrape
+                </button>
+            </div>
+        </div>
+
+        <!-- History -->
+        <div class="bg-twitter-secondary rounded-lg p-6 border border-twitter-border">
+            <h2 class="text-2xl font-semibold mb-4">Scrape History</h2>
+            <div id="historyList" class="space-y-3">
+                <p class="text-gray-400 text-center py-8">No scrape jobs yet. Start your first scrape above!</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentJobId = null;
+        let eventSource = null;
+
+        // Update slider values
+        document.getElementById('maxTweets').addEventListener('input', (e) => {
+            document.getElementById('maxTweetsValue').textContent = e.target.value;
+        });
+
+        document.getElementById('maxComments').addEventListener('input', (e) => {
+            document.getElementById('maxCommentsValue').textContent = e.target.value;
+        });
+
+        // Start scrape form submission
+        document.getElementById('startScrapeForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const username = document.getElementById('username').value.trim().replace('@', '');
+            const maxTweets = parseInt(document.getElementById('maxTweets').value);
+            const maxAge = document.getElementById('maxAge').value;
+            const maxComments = parseInt(document.getElementById('maxComments').value);
+
+            if (!username) {
+                showError('Please enter a Twitter username');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/scrape', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username,
+                        max_tweets: maxTweets,
+                        max_age_days: maxAge ? parseInt(maxAge) : null,
+                        max_comments: maxComments
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    showError(data.error || 'Failed to start scraping');
+                    return;
+                }
+
+                currentJobId = data.job_id;
+                showProgressSection();
+                startProgressStream(currentJobId);
+
+            } catch (error) {
+                showError('Failed to connect to server: ' + error.message);
+            }
+        });
+
+        // Start progress stream
+        function startProgressStream(jobId) {
+            if (eventSource) {
+                eventSource.close();
+            }
+
+            eventSource = new EventSource(`/api/stream/${jobId}`);
+
+            eventSource.onmessage = (event) => {
+                const progress = JSON.parse(event.data);
+                updateProgress(progress);
+
+                if (progress.status === 'completed') {
+                    eventSource.close();
+                    showResults(jobId);
+                } else if (progress.status === 'failed') {
+                    eventSource.close();
+                    showError(progress.message);
+                    hideProgressSection();
+                }
+            };
+
+            eventSource.onerror = () => {
+                eventSource.close();
+            };
+        }
+
+        // Update progress display
+        function updateProgress(progress) {
+            // Update phase indicators
+            document.querySelectorAll('[id^="phase-"]').forEach(el => {
+                el.classList.remove('bg-twitter-blue', 'text-white');
+                el.classList.add('bg-twitter-border');
+            });
+
+            const currentPhase = document.getElementById(`phase-${progress.phase}`);
+            if (currentPhase) {
+                currentPhase.classList.remove('bg-twitter-border');
+                currentPhase.classList.add('bg-twitter-blue', 'text-white');
+            }
+
+            // Update status message
+            document.getElementById('statusMessage').textContent = progress.message;
+
+            // Update user card
+            if (progress.user_data) {
+                const userCard = document.getElementById('userCard');
+                userCard.classList.remove('hidden');
+                document.getElementById('userAvatar').src = progress.user_data.profile_image_url;
+                document.getElementById('userDisplayName').textContent = progress.user_data.display_name;
+                document.getElementById('userUsername').textContent = '@' + progress.user_data.username;
+                document.getElementById('userFollowers').textContent =
+                    progress.user_data.followers_count.toLocaleString() + ' followers';
+            }
+
+            // Update tweets progress
+            const tweetsScraped = progress.tweets_scraped || 0;
+            const tweetsTotal = progress.tweets_total || 0;
+            document.getElementById('tweetsCounter').textContent = `${tweetsScraped}/${tweetsTotal}`;
+            const tweetsPercent = tweetsTotal > 0 ? (tweetsScraped / tweetsTotal * 100) : 0;
+            document.getElementById('tweetsProgress').style.width = tweetsPercent + '%';
+
+            // Update comments progress
+            const commentsScraped = progress.comments_scraped || 0;
+            document.getElementById('commentsCounter').textContent = `${commentsScraped} collected`;
+            const commentsTotal = progress.comments_total || 1;
+            const commentsPercent = commentsTotal > 0 ? (commentsScraped / commentsTotal * 100) : 0;
+            document.getElementById('commentsProgress').style.width = commentsPercent + '%';
+        }
+
+        // Show results
+        async function showResults(jobId) {
+            try {
+                const response = await fetch(`/api/job/${jobId}`);
+                const data = await response.json();
+
+                document.getElementById('totalTweets').textContent = data.tweet_count;
+                document.getElementById('totalComments').textContent = data.comment_count;
+
+                // Calculate engagement rate (simplified)
+                const avgEngagement = data.tweet_count > 0
+                    ? ((data.comment_count / data.tweet_count) * 100).toFixed(1)
+                    : 0;
+                document.getElementById('engagementRate').textContent = avgEngagement + '%';
+
+                document.getElementById('progressSection').classList.add('hidden');
+                document.getElementById('resultsSection').classList.remove('hidden');
+
+                // Setup export buttons
+                document.getElementById('exportJson').onclick = () => {
+                    window.location.href = `/api/export/${jobId}/json`;
+                };
+                document.getElementById('exportCsv').onclick = () => {
+                    window.location.href = `/api/export/${jobId}/csv`;
+                };
+
+                loadHistory();
+
+            } catch (error) {
+                showError('Failed to load results: ' + error.message);
+            }
+        }
+
+        // Cancel job
+        document.getElementById('cancelBtn').addEventListener('click', async () => {
+            if (!currentJobId) return;
+
+            try {
+                await fetch(`/api/cancel/${currentJobId}`, { method: 'POST' });
+                if (eventSource) {
+                    eventSource.close();
+                }
+                hideProgressSection();
+                loadHistory();
+            } catch (error) {
+                showError('Failed to cancel job: ' + error.message);
+            }
+        });
+
+        // New scrape button
+        document.getElementById('newScrapeBtn').addEventListener('click', () => {
+            document.getElementById('resultsSection').classList.add('hidden');
+            document.getElementById('scrapeForm').classList.remove('hidden');
+            document.getElementById('startScrapeForm').reset();
+            document.getElementById('maxTweetsValue').textContent = '100';
+            document.getElementById('maxCommentsValue').textContent = '50';
+        });
+
+        // Load history
+        async function loadHistory() {
+            try {
+                const response = await fetch('/api/jobs');
+                const jobs = await response.json();
+
+                const historyList = document.getElementById('historyList');
+
+                if (jobs.length === 0) {
+                    historyList.innerHTML = '<p class="text-gray-400 text-center py-8">No scrape jobs yet. Start your first scrape above!</p>';
+                    return;
+                }
+
+                historyList.innerHTML = jobs.map(job => {
+                    const statusColors = {
+                        'completed': 'bg-green-900 text-green-200',
+                        'failed': 'bg-red-900 text-red-200',
+                        'running': 'bg-blue-900 text-blue-200',
+                        'pending': 'bg-yellow-900 text-yellow-200'
+                    };
+
+                    return `
+                        <div class="bg-twitter-bg rounded-lg p-4 border border-twitter-border flex justify-between items-center">
+                            <div>
+                                <p class="font-semibold">@${job.username}</p>
+                                <p class="text-sm text-gray-400">
+                                    ${new Date(job.started_at).toLocaleString()} ·
+                                    ${job.scraped_tweets || 0} tweets, ${job.scraped_comments || 0} comments
+                                </p>
+                            </div>
+                            <span class="px-3 py-1 rounded-full text-sm ${statusColors[job.status] || 'bg-gray-700 text-gray-200'}">
+                                ${job.status}
+                            </span>
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (error) {
+                console.error('Failed to load history:', error);
+            }
+        }
+
+        // Helper functions
+        function showProgressSection() {
+            document.getElementById('scrapeForm').classList.add('hidden');
+            document.getElementById('progressSection').classList.remove('hidden');
+            document.getElementById('resultsSection').classList.add('hidden');
+            document.getElementById('userCard').classList.add('hidden');
+            hideError();
+        }
+
+        function hideProgressSection() {
+            document.getElementById('progressSection').classList.add('hidden');
+            document.getElementById('scrapeForm').classList.remove('hidden');
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.classList.remove('hidden');
+        }
+
+        function hideError() {
+            document.getElementById('errorMessage').classList.add('hidden');
+        }
+
+        // Load history on page load
+        loadHistory();
+    </script>
+</body>
+</html>
